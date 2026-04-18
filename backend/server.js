@@ -227,6 +227,11 @@ app.post('/api/tiktok/connect', authenticateToken, (req, res) => {
     res.json({ url: authUrl });
 });
 
+// TikTok Domain Verification
+app.get('/api/tiktok/callback/tiktokdcimJ4u99NgqfEQxv7VWQdEm6Lt9JRAr.txt', (req, res) => {
+    res.type('text/plain').send('tiktok-developers-site-verification=dcimJ4u99NgqfEQxv7VWQdEm6Lt9JRAr');
+});
+
 app.get('/api/tiktok/callback', async (req, res) => {
     const { code, state, error } = req.query;
     if(error || !code) return res.send(`Falha na autenticação do TikTok: ${error}`);
