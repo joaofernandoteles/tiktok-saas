@@ -228,11 +228,11 @@ app.post('/api/tiktok/connect', authenticateToken, (req, res) => {
 });
 
 // TikTok Domain Verification (Root)
-app.get('/tiktokpoX7I9ecxta3Ql2qtyyaNAE9Wmvy3eNC.txt', (req, res) => {
-    res.type('text/plain').send('tiktok-developers-site-verification=poX7I9ecxta3Ql2qtyyaNAE9Wmvy3eNC');
+app.get('/tiktoksYBOFWP2SYN1CTjD0yclEgROk6IaHhAg.txt', (req, res) => {
+    res.type('text/plain').send('tiktok-developers-site-verification=sYBOFWP2SYN1CTjD0yclEgROk6IaHhAg');
 });
-app.get('/api/tiktok/callback/tiktokpoX7I9ecxta3Ql2qtyyaNAE9Wmvy3eNC.txt', (req, res) => {
-    res.type('text/plain').send('tiktok-developers-site-verification=poX7I9ecxta3Ql2qtyyaNAE9Wmvy3eNC');
+app.get('/api/tiktok/callback/tiktoksYBOFWP2SYN1CTjD0yclEgROk6IaHhAg.txt', (req, res) => {
+    res.type('text/plain').send('tiktok-developers-site-verification=sYBOFWP2SYN1CTjD0yclEgROk6IaHhAg');
 });
 
 app.get('/api/tiktok/callback', async (req, res) => {
