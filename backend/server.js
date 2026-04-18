@@ -227,7 +227,10 @@ app.post('/api/tiktok/connect', authenticateToken, (req, res) => {
     res.json({ url: authUrl });
 });
 
-// TikTok Domain Verification
+// TikTok Domain Verification (Root)
+app.get('/tiktokpoX7I9ecxta3Ql2qtyyaNAE9Wmvy3eNC.txt', (req, res) => {
+    res.type('text/plain').send('tiktok-developers-site-verification=poX7I9ecxta3Ql2qtyyaNAE9Wmvy3eNC');
+});
 app.get('/api/tiktok/callback/tiktokpoX7I9ecxta3Ql2qtyyaNAE9Wmvy3eNC.txt', (req, res) => {
     res.type('text/plain').send('tiktok-developers-site-verification=poX7I9ecxta3Ql2qtyyaNAE9Wmvy3eNC');
 });
