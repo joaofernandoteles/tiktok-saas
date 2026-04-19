@@ -227,9 +227,10 @@ app.post('/api/tiktok/connect', authenticateToken, (req, res) => {
     res.json({ url: authUrl });
 });
 
-// TikTok Domain Verification
-app.get('/tiktok*.txt', (req, res) => {
-    const token = req.path.replace('/tiktok', '').replace('.txt', '');
+// TikTok Domain Verification (any path)
+app.get(/\/tiktok[^/]+\.txt$/, (req, res) => {
+    const filename = req.path.split('/').pop();
+    const token = filename.replace('tiktok', '').replace('.txt', '');
     res.type('text/plain').send(`tiktok-developers-site-verification=${token}`);
 });
 
