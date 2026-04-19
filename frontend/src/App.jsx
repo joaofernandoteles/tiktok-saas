@@ -7,6 +7,8 @@ import Saved from './pages/Saved';
 import Schedule from './pages/Schedule';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 
 import './index.css';
 
@@ -28,6 +30,8 @@ function RouterConfig() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         
