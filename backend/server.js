@@ -227,12 +227,18 @@ app.post('/api/tiktok/connect', authenticateToken, (req, res) => {
     res.json({ url: authUrl });
 });
 
-// TikTok Domain Verification (Root)
-app.get('/tiktoksYBOFWP2SYN1CTjD0yclEgROk6IaHhAg.txt', (req, res) => {
-    res.type('text/plain').send('tiktok-developers-site-verification=sYBOFWP2SYN1CTjD0yclEgROk6IaHhAg');
+// TikTok Domain Verification
+app.get('/tiktok*.txt', (req, res) => {
+    const token = req.path.replace('/tiktok', '').replace('.txt', '');
+    res.type('text/plain').send(`tiktok-developers-site-verification=${token}`);
 });
-app.get('/api/tiktok/callback/tiktoksYBOFWP2SYN1CTjD0yclEgROk6IaHhAg.txt', (req, res) => {
-    res.type('text/plain').send('tiktok-developers-site-verification=sYBOFWP2SYN1CTjD0yclEgROk6IaHhAg');
+
+app.get('/terms', (req, res) => {
+    res.type('text/html').send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Termos de Uso - TrendCatcher</title><style>body{font-family:sans-serif;max-width:800px;margin:0 auto;padding:4rem 2rem;line-height:1.8}h1{margin-bottom:0.5rem}h2{margin-top:2rem}</style></head><body><h1>Termos de Uso</h1><p style="color:#666">Última atualização: abril de 2025</p><h2>1. Aceitação dos Termos</h2><p>Ao utilizar o TrendCatcher, você concorda com estes Termos de Uso.</p><h2>2. Descrição do Serviço</h2><p>O TrendCatcher é uma ferramenta de análise de tendências do TikTok que permite buscar vídeos em alta, salvar conteúdos e agendar publicações usando sua conta oficial do TikTok.</p><h2>3. Uso da Conta TikTok</h2><p>Ao conectar sua conta do TikTok, você autoriza o TrendCatcher a publicar vídeos em seu nome nos horários agendados. Você pode revogar esse acesso a qualquer momento nas configurações do TikTok.</p><h2>4. Responsabilidades do Usuário</h2><p>Você é responsável por todo o conteúdo agendado e publicado através da plataforma.</p><h2>5. Contato</h2><p>Dúvidas? <a href="mailto:joaofernando.teles.silva@gmail.com">joaofernando.teles.silva@gmail.com</a></p></body></html>`);
+});
+
+app.get('/privacy', (req, res) => {
+    res.type('text/html').send(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Política de Privacidade - TrendCatcher</title><style>body{font-family:sans-serif;max-width:800px;margin:0 auto;padding:4rem 2rem;line-height:1.8}h1{margin-bottom:0.5rem}h2{margin-top:2rem}</style></head><body><h1>Política de Privacidade</h1><p style="color:#666">Última atualização: abril de 2025</p><h2>1. Dados Coletados</h2><p>Coletamos nome, e-mail, token de acesso do TikTok e preferências de vídeos.</p><h2>2. Uso dos Dados</h2><p>Seus dados são usados exclusivamente para autenticação e publicação de vídeos agendados no TikTok em seu nome.</p><h2>3. Compartilhamento</h2><p>Não vendemos ou compartilhamos seus dados com terceiros.</p><h2>4. Token do TikTok</h2><p>O token é armazenado de forma segura e usado apenas para publicar os vídeos que você agendou. Você pode revogar o acesso nas configurações do TikTok.</p><h2>5. Contato</h2><p><a href="mailto:joaofernando.teles.silva@gmail.com">joaofernando.teles.silva@gmail.com</a></p></body></html>`);
 });
 
 app.get('/api/tiktok/callback', async (req, res) => {
