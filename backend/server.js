@@ -349,7 +349,7 @@ async function postVideoToTikTok(accessToken, videoUrl, caption) {
     const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
         post_info: {
             title: caption || '',
-            privacy_level: 'PUBLIC_TO_EVERYONE',
+            privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY',
             disable_comment: false
         },
         source_info: {
