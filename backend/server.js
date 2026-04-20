@@ -340,13 +340,13 @@ app.post('/api/schedule/post-now', authenticateToken, async (req, res) => {
 
 // ================= TIKTOK VIDEO UPLOADER ================= //
 async function postVideoToTikTok(accessToken, videoUrl, caption) {
-    // Download video into memory
+    console.log(`[TIKTOK] Baixando vídeo: ${videoUrl}`);
     const videoRes = await axios.get(videoUrl, { responseType: 'arraybuffer', timeout: 60000 });
     const videoBuffer = Buffer.from(videoRes.data);
     const videoSize = videoBuffer.length;
+    console.log(`[TIKTOK] Vídeo baixado: ${videoSize} bytes`);
 
-    // Init upload
-    const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
+    const initPayload = {
         post_info: {
             title: caption || '',
             privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY',
@@ -358,15 +358,21 @@ async function postVideoToTikTok(accessToken, videoUrl, caption) {
             chunk_size: videoSize,
             total_chunk_count: 1
         }
-    }, { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } });
+    };
+    console.log(`[TIKTOK] Init payload:`, JSON.stringify(initPayload));
+
+    const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', initPayload,
+        { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } });
+
+    console.log(`[TIKTOK] Init response:`, JSON.stringify(initRes.data));
 
     if (initRes.data?.error?.code && initRes.data.error.code !== 'ok') {
         throw new Error(initRes.data.error.message);
     }
 
     const { upload_url, publish_id } = initRes.data.data;
+    console.log(`[TIKTOK] Upload URL obtido, publish_id: ${publish_id}`);
 
-    // Upload single chunk
     await axios.put(upload_url, videoBuffer, {
         headers: {
             'Content-Type': 'video/mp4',
@@ -377,6 +383,7 @@ async function postVideoToTikTok(accessToken, videoUrl, caption) {
         timeout: 120000
     });
 
+    console.log(`[TIKTOK] Upload concluído com sucesso!`);
     return publish_id;
 }
 
