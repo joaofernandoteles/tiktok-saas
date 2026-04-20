@@ -6,6 +6,12 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegStatic = require('ffmpeg-static');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+ffmpeg.setFfmpegPath(ffmpegStatic);
 
 const db = require('./database');
 const app = express();
@@ -339,52 +345,68 @@ app.post('/api/schedule/post-now', authenticateToken, async (req, res) => {
 });
 
 // ================= TIKTOK VIDEO UPLOADER ================= //
-async function postVideoToTikTok(accessToken, videoUrl, caption) {
-    console.log(`[TIKTOK] Baixando vídeo: ${videoUrl}`);
-    const videoRes = await axios.get(videoUrl, { responseType: 'arraybuffer', timeout: 60000 });
-    const videoBuffer = Buffer.from(videoRes.data);
-    const videoSize = videoBuffer.length;
-    console.log(`[TIKTOK] Vídeo baixado: ${videoSize} bytes`);
-
-    const initPayload = {
-        post_info: {
-            title: caption || '',
-            privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY',
-            disable_comment: false
-        },
-        source_info: {
-            source: 'FILE_UPLOAD',
-            video_size: videoSize,
-            chunk_size: videoSize,
-            total_chunk_count: 1
-        }
-    };
-    console.log(`[TIKTOK] Init payload:`, JSON.stringify(initPayload));
-
-    const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', initPayload,
-        { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } });
-
-    console.log(`[TIKTOK] Init response:`, JSON.stringify(initRes.data));
-
-    if (initRes.data?.error?.code && initRes.data.error.code !== 'ok') {
-        throw new Error(initRes.data.error.message);
-    }
-
-    const { upload_url, publish_id } = initRes.data.data;
-    console.log(`[TIKTOK] Upload URL obtido, publish_id: ${publish_id}`);
-
-    await axios.put(upload_url, videoBuffer, {
-        headers: {
-            'Content-Type': 'video/mp4',
-            'Content-Range': `bytes 0-${videoSize - 1}/${videoSize}`,
-            'Content-Length': videoSize
-        },
-        maxBodyLength: Infinity,
-        timeout: 120000
+async function reencodeVideo(inputPath, outputPath) {
+    return new Promise((resolve, reject) => {
+        ffmpeg(inputPath)
+            .outputOptions(['-c:v libx264', '-crf 24', '-c:a aac', '-map_metadata -1', '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2'])
+            .output(outputPath)
+            .on('end', resolve)
+            .on('error', reject)
+            .run();
     });
+}
 
-    console.log(`[TIKTOK] Upload concluído com sucesso!`);
-    return publish_id;
+async function postVideoToTikTok(accessToken, videoUrl, caption) {
+    const tempInput = path.join(os.tmpdir(), `in_${Date.now()}.mp4`);
+    const tempOutput = path.join(os.tmpdir(), `out_${Date.now()}.mp4`);
+
+    try {
+        console.log(`[TIKTOK] Baixando vídeo...`);
+        const videoRes = await axios.get(videoUrl, { responseType: 'stream', timeout: 60000 });
+        await new Promise((resolve, reject) => {
+            const writer = fs.createWriteStream(tempInput);
+            videoRes.data.pipe(writer);
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+        console.log(`[TIKTOK] Download concluído. Reencodando com FFmpeg...`);
+
+        await reencodeVideo(tempInput, tempOutput);
+        console.log(`[TIKTOK] Reencode concluído.`);
+
+        const videoBuffer = fs.readFileSync(tempOutput);
+        const videoSize = videoBuffer.length;
+        console.log(`[TIKTOK] Tamanho final: ${videoSize} bytes`);
+
+        const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
+            post_info: {
+                title: caption || '',
+                privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY',
+                disable_comment: false
+            },
+            source_info: { source: 'FILE_UPLOAD', video_size: videoSize, chunk_size: videoSize, total_chunk_count: 1 }
+        }, { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } });
+
+        console.log(`[TIKTOK] Init response:`, JSON.stringify(initRes.data));
+
+        if (initRes.data?.error?.code && initRes.data.error.code !== 'ok') {
+            throw new Error(initRes.data.error.message);
+        }
+
+        const { upload_url, publish_id } = initRes.data.data;
+
+        await axios.put(upload_url, videoBuffer, {
+            headers: { 'Content-Type': 'video/mp4', 'Content-Range': `bytes 0-${videoSize - 1}/${videoSize}`, 'Content-Length': videoSize },
+            maxBodyLength: Infinity,
+            timeout: 120000
+        });
+
+        console.log(`[TIKTOK] Upload concluído! publish_id: ${publish_id}`);
+        return publish_id;
+    } finally {
+        if (fs.existsSync(tempInput)) fs.unlinkSync(tempInput);
+        if (fs.existsSync(tempOutput)) fs.unlinkSync(tempOutput);
+    }
 }
 
 // ================= CRON JOB: POSTADOR AUTOMATICO ================= //
