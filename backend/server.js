@@ -350,18 +350,16 @@ app.post('/api/schedule/post-now', authenticateToken, async (req, res) => {
 app.post('/api/schedule/upload-and-post', authenticateToken, upload.single('video'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
     const caption = req.body.caption || '';
-    const tempOutput = path.join(os.tmpdir(), `out_${Date.now()}.mp4`);
 
     try {
         db.get(`SELECT access_token FROM tiktok_accounts WHERE user_id = ?`, [req.user.id], async (err, account) => {
             if (err || !account) return res.status(400).json({ error: 'Conta TikTok não conectada.' });
 
             try {
-                console.log(`[UPLOAD] Reencodando arquivo: ${req.file.path}`);
-                await reencodeVideo(req.file.path, tempOutput);
-
-                const videoBuffer = fs.readFileSync(tempOutput);
+                console.log(`[UPLOAD] Lendo arquivo: ${req.file.path}`);
+                const videoBuffer = fs.readFileSync(req.file.path);
                 const videoSize = videoBuffer.length;
+                console.log(`[UPLOAD] Tamanho: ${videoSize} bytes`);
 
                 const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
                     post_info: { title: caption, privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY', disable_comment: false },
@@ -388,7 +386,6 @@ app.post('/api/schedule/upload-and-post', authenticateToken, upload.single('vide
                 res.status(500).json({ error: errMsg });
             } finally {
                 if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-                if (fs.existsSync(tempOutput)) fs.unlinkSync(tempOutput);
             }
         });
     } catch (e) {
