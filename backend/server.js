@@ -11,7 +11,10 @@ const ffmpegStatic = require('ffmpeg-static');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const multer = require('multer');
 ffmpeg.setFfmpegPath(ffmpegStatic);
+
+const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 500 * 1024 * 1024 } });
 
 const db = require('./database');
 const app = express();
@@ -342,6 +345,55 @@ app.post('/api/schedule/post-now', authenticateToken, async (req, res) => {
             res.status(500).json({ error: errMsg });
         }
     });
+});
+
+app.post('/api/schedule/upload-and-post', authenticateToken, upload.single('video'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+    const caption = req.body.caption || '';
+    const tempOutput = path.join(os.tmpdir(), `out_${Date.now()}.mp4`);
+
+    try {
+        db.get(`SELECT access_token FROM tiktok_accounts WHERE user_id = ?`, [req.user.id], async (err, account) => {
+            if (err || !account) return res.status(400).json({ error: 'Conta TikTok não conectada.' });
+
+            try {
+                console.log(`[UPLOAD] Reencodando arquivo: ${req.file.path}`);
+                await reencodeVideo(req.file.path, tempOutput);
+
+                const videoBuffer = fs.readFileSync(tempOutput);
+                const videoSize = videoBuffer.length;
+
+                const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
+                    post_info: { title: caption, privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY', disable_comment: false },
+                    source_info: { source: 'FILE_UPLOAD', video_size: videoSize, chunk_size: videoSize, total_chunk_count: 1 }
+                }, { headers: { 'Authorization': `Bearer ${account.access_token}`, 'Content-Type': 'application/json' } });
+
+                console.log(`[UPLOAD] Init response:`, JSON.stringify(initRes.data));
+
+                if (initRes.data?.error?.code && initRes.data.error.code !== 'ok') {
+                    throw new Error(initRes.data.error.message);
+                }
+
+                const { upload_url, publish_id } = initRes.data.data;
+
+                await axios.put(upload_url, videoBuffer, {
+                    headers: { 'Content-Type': 'video/mp4', 'Content-Range': `bytes 0-${videoSize - 1}/${videoSize}`, 'Content-Length': videoSize },
+                    maxBodyLength: Infinity, timeout: 120000
+                });
+
+                res.json({ success: true, publish_id });
+            } catch (e) {
+                const errMsg = e.response?.data?.error?.message || e.message;
+                console.error('[UPLOAD] Erro:', errMsg);
+                res.status(500).json({ error: errMsg });
+            } finally {
+                if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+                if (fs.existsSync(tempOutput)) fs.unlinkSync(tempOutput);
+            }
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // ================= TIKTOK VIDEO UPLOADER ================= //

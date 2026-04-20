@@ -1,6 +1,6 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useRef } from 'react';
 import { AppContext } from '../context/AppContext';
-import { CalendarClockIcon, CheckCircleIcon, LinkIcon, Trash2Icon, RefreshCcwIcon, ZapIcon, PencilIcon, XIcon, SendIcon, CalendarIcon, ClockIcon } from 'lucide-react';
+import { CalendarClockIcon, CheckCircleIcon, LinkIcon, Trash2Icon, RefreshCcwIcon, ZapIcon, PencilIcon, XIcon, SendIcon, CalendarIcon, ClockIcon, UploadIcon } from 'lucide-react';
 
 const API = () => import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -79,6 +79,9 @@ export default function Schedule() {
     const [loading, setLoading] = useState(true);
     const [editingPost, setEditingPost] = useState(null);
     const [postingNow, setPostingNow] = useState(null);
+    const [uploadCaption, setUploadCaption] = useState('');
+    const [uploading, setUploading] = useState(false);
+    const fileRef = useRef(null);
 
     const loadData = async () => {
         try {
@@ -103,6 +106,32 @@ export default function Schedule() {
     const handleDelete = async (id) => {
         await fetch(`${API()}/api/schedule/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify({id}) });
         loadData();
+    };
+
+    const handleUploadAndPost = async () => {
+        const file = fileRef.current?.files[0];
+        if (!file) return alert('Seleciona um arquivo MP4.');
+        setUploading(true);
+        try {
+            const form = new FormData();
+            form.append('video', file);
+            form.append('caption', uploadCaption);
+            const res = await fetch(`${API()}/api/schedule/upload-and-post`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: form
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            alert('Vídeo postado com sucesso no TikTok!');
+            setUploadCaption('');
+            if (fileRef.current) fileRef.current.value = '';
+            loadData();
+        } catch (e) {
+            alert('Erro ao postar: ' + e.message);
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handlePostNow = async (post) => {
@@ -151,6 +180,19 @@ export default function Schedule() {
                     )}
                 </div>
             </header>
+
+            {status.connected && (
+                <div style={{background: 'var(--panel-bg)', borderRadius: 24, padding: '2rem', border: '1px solid var(--panel-border)', marginBottom: '1.5rem'}}>
+                    <h2 style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem'}}><UploadIcon size={20}/> Postar Vídeo do Computador</h2>
+                    <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
+                        <input ref={fileRef} type="file" accept="video/mp4,video/*" style={{padding: '0.8rem', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--panel-border)', color: 'white'}}/>
+                        <textarea value={uploadCaption} onChange={e => setUploadCaption(e.target.value)} placeholder="Legenda e #hashtags..." rows={2} style={{padding: '1rem', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--panel-border)', color: 'white', resize: 'none'}}/>
+                        <button onClick={handleUploadAndPost} disabled={uploading} className="search-btn" style={{display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '1rem'}}>
+                            {uploading ? <div className="loader"></div> : <><UploadIcon size={18}/> Enviar e Postar Agora no TikTok</>}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div style={{background: 'var(--panel-bg)', borderRadius: 24, padding: '2rem', border: '1px solid var(--panel-border)'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem'}}>
