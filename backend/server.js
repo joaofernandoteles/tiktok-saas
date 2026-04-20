@@ -327,28 +327,9 @@ app.post('/api/schedule/post-now', authenticateToken, async (req, res) => {
         if (!post.access_token) return res.status(400).json({ error: "Conta TikTok não conectada." });
 
         try {
-            const payload = {
-                post_info: {
-                    title: post.caption,
-                    privacy_level: "PUBLIC_TO_EVERYONE",
-                    disable_comment: false
-                },
-                source_info: {
-                    source: "PULL_FROM_URL",
-                    video_url: post.video_url
-                }
-            };
-
-            const postRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', payload, {
-                headers: { 'Authorization': `Bearer ${post.access_token}`, 'Content-Type': 'application/json' }
-            });
-
-            if (postRes.data?.error?.code && postRes.data.error.code !== 'ok') {
-                throw new Error(postRes.data.error.message);
-            }
-
+            const publish_id = await postVideoToTikTok(post.access_token, post.video_url, post.caption);
             db.run(`UPDATE scheduled_posts SET status = 'PUBLISHED' WHERE id = ?`, [post.id]);
-            res.json({ success: true, publish_id: postRes.data?.data?.publish_id });
+            res.json({ success: true, publish_id });
         } catch (e) {
             const errMsg = e.response?.data?.error?.message || e.message;
             db.run(`UPDATE scheduled_posts SET status = 'ERROR' WHERE id = ?`, [post.id]);
@@ -356,6 +337,48 @@ app.post('/api/schedule/post-now', authenticateToken, async (req, res) => {
         }
     });
 });
+
+// ================= TIKTOK VIDEO UPLOADER ================= //
+async function postVideoToTikTok(accessToken, videoUrl, caption) {
+    // Download video into memory
+    const videoRes = await axios.get(videoUrl, { responseType: 'arraybuffer', timeout: 60000 });
+    const videoBuffer = Buffer.from(videoRes.data);
+    const videoSize = videoBuffer.length;
+
+    // Init upload
+    const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
+        post_info: {
+            title: caption || '',
+            privacy_level: 'PUBLIC_TO_EVERYONE',
+            disable_comment: false
+        },
+        source_info: {
+            source: 'FILE_UPLOAD',
+            video_size: videoSize,
+            chunk_size: videoSize,
+            total_chunk_count: 1
+        }
+    }, { headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' } });
+
+    if (initRes.data?.error?.code && initRes.data.error.code !== 'ok') {
+        throw new Error(initRes.data.error.message);
+    }
+
+    const { upload_url, publish_id } = initRes.data.data;
+
+    // Upload single chunk
+    await axios.put(upload_url, videoBuffer, {
+        headers: {
+            'Content-Type': 'video/mp4',
+            'Content-Range': `bytes 0-${videoSize - 1}/${videoSize}`,
+            'Content-Length': videoSize
+        },
+        maxBodyLength: Infinity,
+        timeout: 120000
+    });
+
+    return publish_id;
+}
 
 // ================= CRON JOB: POSTADOR AUTOMATICO ================= //
 // Roda a cada minuto checando os horários
@@ -369,28 +392,9 @@ cron.schedule('* * * * *', () => {
             console.log(`[CRON] Disparando automação do vídeo para TikTok... Usuário: ${post.user_id}`);
             
             try {
-                const payload = {
-                    post_info: {
-                        title: post.caption,
-                        privacy_level: "PUBLIC_TO_EVERYONE",
-                        disable_comment: false
-                    },
-                    source_info: {
-                        source: "PULL_FROM_URL",
-                        video_url: post.video_url
-                    }
-                };
-
-                const postRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', payload, {
-                    headers: { 'Authorization': `Bearer ${post.access_token}`, 'Content-Type': 'application/json' }
-                });
-
-                if(postRes.data && postRes.data.error && postRes.data.error.code !== 'ok') {
-                    throw new Error(postRes.data.error.message);
-                }
-
+                const publish_id = await postVideoToTikTok(post.access_token, post.video_url, post.caption);
                 db.run(`UPDATE scheduled_posts SET status = 'PUBLISHED' WHERE id = ?`, [post.id], () => {
-                    console.log(`[CRON] Sucesso! Publish ID:`, postRes.data?.data?.publish_id);
+                    console.log(`[CRON] Sucesso! Publish ID:`, publish_id);
                 });
             } catch(e) {
                 console.error(`[CRON] Falha ao postar vídeo ${post.id}:`, e.response?.data || e.message);
