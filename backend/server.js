@@ -310,6 +310,53 @@ app.post('/api/schedule/delete', authenticateToken, (req, res) => {
     });
 });
 
+app.post('/api/schedule/update', authenticateToken, (req, res) => {
+    const { id, caption, post_time } = req.body;
+    db.run(`UPDATE scheduled_posts SET caption = ?, post_time = ?, status = 'PENDING' WHERE id = ? AND user_id = ?`,
+        [caption, post_time, id, req.user.id], (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
+app.post('/api/schedule/post-now', authenticateToken, async (req, res) => {
+    const { id } = req.body;
+    db.get(`SELECT sp.*, ta.access_token FROM scheduled_posts sp JOIN tiktok_accounts ta ON sp.user_id = ta.user_id WHERE sp.id = ? AND sp.user_id = ?`,
+        [id, req.user.id], async (err, post) => {
+        if (err || !post) return res.status(404).json({ error: "Post não encontrado." });
+        if (!post.access_token) return res.status(400).json({ error: "Conta TikTok não conectada." });
+
+        try {
+            const payload = {
+                post_info: {
+                    title: post.caption,
+                    privacy_level: "PUBLIC_TO_EVERYONE",
+                    disable_comment: false
+                },
+                source_info: {
+                    source: "PULL_FROM_URL",
+                    video_url: post.video_url
+                }
+            };
+
+            const postRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', payload, {
+                headers: { 'Authorization': `Bearer ${post.access_token}`, 'Content-Type': 'application/json' }
+            });
+
+            if (postRes.data?.error?.code && postRes.data.error.code !== 'ok') {
+                throw new Error(postRes.data.error.message);
+            }
+
+            db.run(`UPDATE scheduled_posts SET status = 'PUBLISHED' WHERE id = ?`, [post.id]);
+            res.json({ success: true, publish_id: postRes.data?.data?.publish_id });
+        } catch (e) {
+            const errMsg = e.response?.data?.error?.message || e.message;
+            db.run(`UPDATE scheduled_posts SET status = 'ERROR' WHERE id = ?`, [post.id]);
+            res.status(500).json({ error: errMsg });
+        }
+    });
+});
+
 // ================= CRON JOB: POSTADOR AUTOMATICO ================= //
 // Roda a cada minuto checando os horários
 cron.schedule('* * * * *', () => {
