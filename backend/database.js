@@ -24,8 +24,8 @@ if (USE_PG) {
             name TEXT,
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
-            "savedVideos" TEXT DEFAULT '[]',
-            "likedVideos" TEXT DEFAULT '[]'
+            savedvideos TEXT DEFAULT '[]',
+            likedvideos TEXT DEFAULT '[]'
         )`);
         await pool.query(`CREATE TABLE IF NOT EXISTS tiktok_accounts (
             id SERIAL PRIMARY KEY,

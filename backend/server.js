@@ -71,8 +71,8 @@ app.post('/api/auth/login', (req, res) => {
             success: true,
             token,
             user: { id: user.id, name: user.name, email: user.email },
-            savedVideos: JSON.parse(user.savedVideos || '[]'),
-            likedVideos: JSON.parse(user.likedVideos || '[]')
+            savedVideos: JSON.parse(user.savedvideos || '[]'),
+            likedVideos: JSON.parse(user.likedvideos || '[]')
         });
     });
 });
@@ -85,11 +85,11 @@ app.post('/api/user/sync', authenticateToken, (req, res) => {
     let params = [];
     
     if(savedVideos !== undefined) {
-        query += "savedVideos = ?, ";
+        query += "savedvideos = ?, ";
         params.push(JSON.stringify(savedVideos));
     }
     if(likedVideos !== undefined) {
-        query += "likedVideos = ?, ";
+        query += "likedvideos = ?, ";
         params.push(JSON.stringify(likedVideos));
     }
 
