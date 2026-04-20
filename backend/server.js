@@ -415,7 +415,14 @@ app.post('/api/schedule/upload-and-post', authenticateToken, upload.single('vide
 async function reencodeVideo(inputPath, outputPath) {
     return new Promise((resolve, reject) => {
         ffmpeg(inputPath)
-            .outputOptions(['-c:v libx264', '-crf 24', '-c:a aac', '-map_metadata -1', '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2'])
+            .outputOptions([
+                '-c:v libx264', '-preset ultrafast', '-crf 23',
+                '-c:a aac', '-b:a 128k',
+                '-map_metadata -1',
+                // Anti-fingerprint: crop 2px, speed 1.001x, saturação +1%
+                '-vf', 'crop=iw-4:ih-4:2:2,setpts=PTS/1.001,eq=saturation=1.01',
+                '-movflags +faststart'
+            ])
             .output(outputPath)
             .on('end', resolve)
             .on('error', reject)
