@@ -217,7 +217,7 @@ const cron = require('node-cron');
 app.post('/api/tiktok/connect', authenticateToken, (req, res) => {
     const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY || 'aw8088i96wy0bxcc';
     const REDIRECT_URI = encodeURIComponent((process.env.BACKEND_URL || "http://localhost:3001") + "/api/tiktok/callback");
-    const SCOPES = "user.info.basic,video.upload";
+    const SCOPES = "user.info.basic,video.publish,video.upload";
     
     // O state envia o nosso internal User ID assinado pra nao nos perdermos na volta
     const customState = req.user.id; 
