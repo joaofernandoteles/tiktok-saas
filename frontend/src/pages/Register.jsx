@@ -5,6 +5,7 @@ export default function Register() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -40,7 +41,10 @@ export default function Register() {
                 <form onSubmit={handleSubmit} className="auth-form" style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
                     <input type="text" placeholder="Nome ou Empresa" value={name} onChange={e => setName(e.target.value)} required style={{padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--panel-border)', color:'white', fontSize:'1rem'}} />
                     <input type="email" placeholder="E-mail principal" value={email} onChange={e => setEmail(e.target.value)} required style={{padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--panel-border)', color:'white', fontSize:'1rem'}} />
-                    <input type="password" placeholder="Crie uma senha forte" value={password} onChange={e => setPassword(e.target.value)} required style={{padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--panel-border)', color:'white', fontSize:'1rem'}} />
+                    <div style={{position:'relative'}}>
+                        <input type={showPassword ? 'text' : 'password'} placeholder="Crie uma senha forte" value={password} onChange={e => setPassword(e.target.value)} required style={{padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--panel-border)', color:'white', fontSize:'1rem', width:'100%', boxSizing:'border-box'}} />
+                        <button type="button" onClick={() => setShowPassword(p => !p)} style={{position:'absolute', right:'1rem', top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--text-secondary)', cursor:'pointer', fontSize:'0.85rem'}}>{showPassword ? 'Ocultar' : 'Mostrar'}</button>
+                    </div>
                     <button type="submit" className="search-btn" style={{width: '100%', marginTop: '1rem', padding: '1rem', borderRadius:'12px'}} disabled={loading}>
                          {loading ? <div className="loader"></div> : 'Ativar Minha Conta'}
                     </button>
