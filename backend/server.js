@@ -379,8 +379,7 @@ app.post('/api/schedule/upload-and-post', authenticateToken, upload.single('vide
                 if (fs.existsSync(tempOutput)) fs.unlinkSync(tempOutput);
                 console.log(`[UPLOAD] Tamanho final: ${videoSize} bytes`);
 
-                const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
-                    post_info: { title: caption, privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY', disable_comment: false },
+                const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/inbox/video/init/', {
                     source_info: { source: 'FILE_UPLOAD', video_size: videoSize, chunk_size: videoSize, total_chunk_count: 1 }
                 }, { headers: { 'Authorization': `Bearer ${account.access_token}`, 'Content-Type': 'application/json' } });
 
