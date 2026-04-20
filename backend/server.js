@@ -39,7 +39,7 @@ app.post('/api/auth/register', (req, res) => {
 
     db.run(`INSERT INTO users (name, email, password) VALUES (?, ?, ?)`, [name, email, hash], function(err) {
         if (err) {
-            if(err.message.includes("UNIQUE")) return res.status(400).json({error: "Esse e-mail já existe."});
+            if(err.message.includes("UNIQUE") || err.code === '23505') return res.status(400).json({error: "Esse e-mail já existe."});
             return res.status(500).json({error: err.message});
         }
         res.json({ success: true, message: "Conta criada com sucesso" });
