@@ -399,7 +399,7 @@ app.post('/api/schedule/upload-and-post', authenticateToken, upload.single('vide
 
                 res.json({ success: true, publish_id });
             } catch (e) {
-                const errMsg = e.response?.data?.error?.message || e.message;
+                const errMsg = e.response?.data ? JSON.stringify(e.response.data) : e.message;
                 console.error('[UPLOAD] Erro:', errMsg);
                 res.status(500).json({ error: errMsg });
             } finally {
