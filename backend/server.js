@@ -367,10 +367,18 @@ app.post('/api/schedule/upload-and-post', authenticateToken, upload.single('vide
                 const videoSize = videoBuffer.length;
                 console.log(`[UPLOAD] Enviando vídeo original sem reencode: ${videoSize} bytes`);
 
+                const creatorInfoRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/creator_info/query/', {}, {
+                    headers: { 'Authorization': `Bearer ${account.access_token}`, 'Content-Type': 'application/json' }
+                });
+                console.log(`[UPLOAD] Creator Info:`, JSON.stringify(creatorInfoRes.data));
+                
+                const allowedPrivacyLevels = creatorInfoRes.data?.data?.creator_avatar_url ? creatorInfoRes.data?.data?.privacy_level_options : ['MUTUAL_FOLLOW_FRIENDS'];
+                const safePrivacy = allowedPrivacyLevels?.[0] || 'MUTUAL_FOLLOW_FRIENDS';
+
                 const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
                     post_info: {
                         title: caption || '',
-                        privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY',
+                        privacy_level: safePrivacy,
                         disable_comment: false
                     },
                     source_info: { source: 'FILE_UPLOAD', video_size: videoSize, chunk_size: videoSize, total_chunk_count: 1 }
@@ -444,10 +452,15 @@ async function postVideoToTikTok(accessToken, videoUrl, caption) {
         const videoSize = videoBuffer.length;
         console.log(`[TIKTOK] Tamanho final: ${videoSize} bytes`);
 
+        const creatorInfoRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/creator_info/query/', {}, {
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
+        });
+        const safePrivacy = creatorInfoRes.data?.data?.privacy_level_options?.[0] || 'MUTUAL_FOLLOW_FRIENDS';
+
         const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
             post_info: {
                 title: caption || '',
-                privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY',
+                privacy_level: safePrivacy,
                 disable_comment: false
             },
             source_info: { source: 'FILE_UPLOAD', video_size: videoSize, chunk_size: videoSize, total_chunk_count: 1 }
