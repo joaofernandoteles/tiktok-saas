@@ -270,13 +270,20 @@ app.get('/api/tiktok/callback', async (req, res) => {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
         
-        const { access_token, refresh_token, open_id } = tokenRes.data?.data || tokenRes.data;
+        const access_token = tokenRes.data?.access_token || tokenRes.data?.data?.access_token;
+        const refresh_token = tokenRes.data?.refresh_token || tokenRes.data?.data?.refresh_token;
+        const open_id = tokenRes.data?.open_id || tokenRes.data?.data?.open_id;
+        
+        if (!access_token) {
+            throw new Error(`Token Vazio! Resposta do TikTok: ${JSON.stringify(tokenRes.data)}`);
+        }
         
         // Vamos buscar o nome do usuario na API de Basic Info
         const userInfoRes = await axios.get('https://open.tiktokapis.com/v2/user/info/?fields=display_name', {
             headers: { 'Authorization': `Bearer ${access_token}` }
         });
         const username = userInfoRes.data?.data?.user?.display_name || "Usuário TikTok";
+
 
         db.run(`INSERT INTO tiktok_accounts (user_id, tiktok_username, access_token) VALUES (?, ?, ?)`,
            [userId, username, access_token], (err) => {
