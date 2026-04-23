@@ -270,7 +270,7 @@ app.get('/api/tiktok/callback', async (req, res) => {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
         
-        const { access_token, refresh_token, open_id } = tokenRes.data;
+        const { access_token, refresh_token, open_id } = tokenRes.data?.data || tokenRes.data;
         
         // Vamos buscar o nome do usuario na API de Basic Info
         const userInfoRes = await axios.get('https://open.tiktokapis.com/v2/user/info/?fields=display_name', {
