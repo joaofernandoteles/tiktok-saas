@@ -370,7 +370,7 @@ app.post('/api/schedule/upload-and-post', authenticateToken, upload.single('vide
                 const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
                     post_info: {
                         title: caption || '',
-                        privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'PUBLIC_TO_EVERYONE',
+                        privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY',
                         disable_comment: false
                     },
                     source_info: { source: 'FILE_UPLOAD', video_size: videoSize, chunk_size: videoSize, total_chunk_count: 1 }
@@ -447,7 +447,7 @@ async function postVideoToTikTok(accessToken, videoUrl, caption) {
         const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
             post_info: {
                 title: caption || '',
-                privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'PUBLIC_TO_EVERYONE',
+                privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY',
                 disable_comment: false
             },
             source_info: { source: 'FILE_UPLOAD', video_size: videoSize, chunk_size: videoSize, total_chunk_count: 1 }
