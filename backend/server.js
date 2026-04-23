@@ -363,30 +363,16 @@ app.post('/api/schedule/upload-and-post', authenticateToken, upload.single('vide
             if (err || !account) return res.status(400).json({ error: 'Conta TikTok não conectada.' });
 
             try {
-                const tempOutput = path.join(os.tmpdir(), `out_${Date.now()}.mp4`);
-                console.log(`[UPLOAD] Reprocessando vídeo com FFmpeg...`);
-                await new Promise((resolve, reject) => {
-                    ffmpeg(req.file.path)
-                        .outputOptions([
-                            '-c:v libx264', '-preset ultrafast', '-crf 23',
-                            '-c:a aac', '-b:a 128k',
-                            '-map_metadata -1',
-                            '-vf scale=trunc(iw/2)*2:trunc(ih/2)*2',
-                            '-movflags +faststart'
-                        ])
-                        .output(tempOutput)
-                        .on('end', resolve)
-                        .on('error', reject)
-                        .run();
-                });
-                console.log(`[UPLOAD] Reprocessamento concluído.`);
-
-                const videoBuffer = fs.readFileSync(tempOutput);
+                const videoBuffer = fs.readFileSync(req.file.path);
                 const videoSize = videoBuffer.length;
-                if (fs.existsSync(tempOutput)) fs.unlinkSync(tempOutput);
-                console.log(`[UPLOAD] Tamanho final: ${videoSize} bytes`);
+                console.log(`[UPLOAD] Enviando vídeo original sem reencode: ${videoSize} bytes`);
 
-                const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/inbox/video/init/', {
+                const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
+                    post_info: {
+                        title: caption || '',
+                        privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'PUBLIC_TO_EVERYONE',
+                        disable_comment: false
+                    },
                     source_info: { source: 'FILE_UPLOAD', video_size: videoSize, chunk_size: videoSize, total_chunk_count: 1 }
                 }, { headers: { 'Authorization': `Bearer ${account.access_token}`, 'Content-Type': 'application/json' } });
 
@@ -461,7 +447,7 @@ async function postVideoToTikTok(accessToken, videoUrl, caption) {
         const initRes = await axios.post('https://open.tiktokapis.com/v2/post/publish/video/init/', {
             post_info: {
                 title: caption || '',
-                privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'SELF_ONLY',
+                privacy_level: process.env.TIKTOK_PRIVACY_LEVEL || 'PUBLIC_TO_EVERYONE',
                 disable_comment: false
             },
             source_info: { source: 'FILE_UPLOAD', video_size: videoSize, chunk_size: videoSize, total_chunk_count: 1 }
