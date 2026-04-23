@@ -285,7 +285,7 @@ app.get('/api/tiktok/callback', async (req, res) => {
         });
     } catch(err) {
         console.error("Erro no Callback do TikTok:", err.response?.data || err.message);
-        res.send("Erro ao obter chaves do TikTok. Suas credenciais podem estar incorretas ou seu Redirect URI desconfigurado na Dashboard.");
+        res.send(`Erro ao obter chaves do TikTok. Retorno da API: ${JSON.stringify(err.response?.data || err.message)}`);
     }
 });
 
