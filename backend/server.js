@@ -224,7 +224,7 @@ const cron = require('node-cron');
 
 // ================= SCHEDULING ROUTES ================= //
 app.post('/api/tiktok/connect', authenticateToken, (req, res) => {
-    const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY || 'aw8088i96wy0bxcc';
+    const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY || 'aw9cdptjdya3rh5k';
     const REDIRECT_URI = encodeURIComponent((process.env.BACKEND_URL || "http://localhost:3001") + "/api/tiktok/callback");
     const SCOPES = "user.info.basic,video.publish,video.upload";
     
@@ -256,8 +256,8 @@ app.get('/api/tiktok/callback', async (req, res) => {
     if(error || !code) return res.send(`Falha na autenticação do TikTok: ${error}`);
     
     const userId = state;
-    const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY || 'aw8088i96wy0bxcc';
-    const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET || 'zf11kmWMDD1yCTOJgT1nqh43Dhq1MWGI';
+    const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY || 'aw9cdptjdya3rh5k';
+    const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET || 'Xae8yMOukiNoorWXneIXAkuFP4I48a2k';
     
     try {
         const tokenRes = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', new URLSearchParams({
